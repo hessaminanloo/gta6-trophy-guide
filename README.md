@@ -1,60 +1,28 @@
-[![make.fun · gta6-trophy-guide-01](https://make.fun/badge/gta6-trophy-guide-01.svg)](https://make.fun/bounty/gta6-trophy-guide-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
-[![rank](https://make.fun/badge/gta6-trophy-guide-01/hessaminanloo/gta6-trophy-guide/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
-[![reward](https://make.fun/badge/gta6-trophy-guide-01/hessaminanloo/gta6-trophy-guide/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
-
 # Leonida Ledger — GTA VI Trophy Guide & Tracker
 
-An offline guide and tracker for all 55 PlayStation 5 trophies of Grand Theft Auto VI. Built for the [make.fun bounty gta6-trophy-guide-01](https://make.fun/bounty/gta6-trophy-guide-01).
+[![make.fun bounty](https://make.fun/badge/gta6-trophy-guide-01.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
+[![rank](https://make.fun/badge/gta6-trophy-guide-01/hessaminanloo/gta6-trophy-guide/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
+[![reward](https://make.fun/badge/gta6-trophy-guide-01/hessaminanloo/gta6-trophy-guide/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
 
-## What it is
+An offline guide and tracker for all 55 PlayStation 5 trophies of Grand Theft Auto VI, built for the make.fun bounty [gta6-trophy-guide-01](https://make.fun/bounty/gta6-trophy-guide-01). Open `app/index.html` in a desktop browser — no server, no network, no build step — and it works.
 
-- **The full official list, exactly as PlayStation publishes it** — name, description and grade for all 55 trophies (1 platinum, 2 gold, 6 silver, 46 bronze), with the 28 hidden trophies flagged.
-- **A guide for every trophy, written in our own words, with its sources beside it** — mostly PowerPyx's GTA 6 Trophy Guide & Roadmap, cross-checked against the official list on Exophase and PSNProfiles. Five trophies had no published method on launch day (19 Nov 2026); their guides say so honestly instead of inventing a location.
-- **A checklist that remembers** — tick trophies off and your progress is saved in the browser (localStorage), with export to a JSON file and import back. Demo mode (`?demo=1`) only seeds progress when nothing is saved, and never writes it — a demo link can never wipe a real checklist.
-- **Filters** — by kind (story, missable, collectibles, activities, online), by grade, by earned/remaining, plus full-text search.
-- **A spoiler setting** — hides the names and descriptions of hidden trophies until you earn them.
-- **A roadmap to the platinum** — three steps (story, 100% checklist, cleanup), the story chapters and their trophies, and every count that matters (250 of 397 stunts, 42 shooting-range golds, 200 of 277 vehicles, 15 target decks, and more).
-- **A missables page** — the one potentially missable trophy (Positive Mental Attitude, Chapter 1) in full, and why nothing else can be missed.
-- **Fully offline** — static files under `app/`, no build step, no network request at run time. No Rockstar logo or official artwork anywhere.
-- **Checked in a headless browser** — 36 checks passed on 19 Nov 2026: 55 cards render, 0 console errors, 0 external requests, checklist persistence, export/import round-trip, filters, spoiler masking (26 of 28 hidden trophies masked with 2 earned) and the demo-mode fix.
+## What it does
 
-## Running it offline
+- **The full official list.** All 55 trophies with their official names, descriptions and grades as PlayStation publishes them: 1 platinum, 2 gold, 6 silver, 46 bronze, 28 of them hidden.
+- **A guide for every trophy**, written for this app, each one naming its sources beside it (the official list on Exophase, PSNProfiles' targets, and the established guide sites). Five trophies whose trigger no source has confirmed yet say exactly that instead of inventing steps.
+- **A tracker.** Tick trophies off as you earn them; progress saves in the browser (localStorage) and can be exported to a JSON file and imported back on any machine.
+- **Filters and search.** By kind — story, missable, collectibles, activities, online — or by free text across names, descriptions and guides.
+- **Spoiler mode.** Hidden and story trophies stay masked until you earn them or choose to reveal one.
+- **A roadmap to the platinum** in three steps, built from the official descriptions, with the list's one missable trophy — Positive Mental Attitude — flagged and explained, and a counts table that agrees with the data.
+- **A demo mode.** Add `?demo=1` to the address to see a sample checklist. It lives in memory only and never overwrites a saved checklist.
 
-```sh
-node serve.ts
-```
+## Layout
 
-Then open http://localhost:8080 in a desktop browser. Any static file server works — serve `app/` as the root and open `index.html`.
-
-URL parameters that help (also used for the screenshots in `shots.json`):
-
-- `?demo=1` — seeds 13 earned trophies so the tracker shows progress (memory-only, and only when nothing is saved)
-- `?open=<trophy-id>` — opens that trophy's guide in the detail pane
-- `?spoiler=1` — turns the spoiler setting on
-- `?view=roadmap` or `?view=missables` — opens that tab
-
-## Files
-
-- `app/index.html` — the shell: masthead with progress, tabs, toolbar, three views
-- `app/style.css` — the whole look (warm paper, one sunset accent, system fonts)
-- `app/js/main.js` — boot, state, toolbar wiring and hash routing
-- `app/js/store.js` — localStorage progress, export and import
-- `app/js/filters.js` — kind/grade/search filtering and the spoiler rule
-- `app/js/checklist.js` — the trophy list, per-grade progress and next-up
-- `app/js/detail.js` — the guide pane with sources
-- `app/js/roadmap.js` — the platinum roadmap view
-- `app/js/missables.js` — the missables view
-- `app/data/trophies.json` — the 55 trophies with guides and sources
-- `app/data/roadmap.json` — the roadmap steps, chapters and counts
-- `main.ts` — the entry program: copies `app/` and `screenshots/` to the output and writes `dossier.json`
-- `screenshots/` — renders of the app taken in a headless browser
-
-## Handing the entry in
-
-```sh
-mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
-```
+- `app/` — the guide itself: `index.html`, `style.css`, ES modules under `js/` (data loading, the progress store, filters, rendering, boot), and the data under `data/` (`trophies.json`, `roadmap.json`).
+- `screenshots/` — four renders of the app at 1280×800; `shots.json` says what each one shows.
+- `main.ts` — the hand-in program (Node 22, standard library only): copies `app/` and `screenshots/` to the output directory and writes `dossier.json` with the vendored library in `vendor/`.
+- `serve.ts` — a small local server for trying the guide (`node serve.ts`, then open the address it prints).
 
 ## License
 
-MIT — see `LICENSE`. Grand Theft Auto and GTA are trademarks of Take-Two Interactive. This is an unofficial fan-made guide, not affiliated with Rockstar Games.
+MIT — see `LICENSE`.

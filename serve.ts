@@ -1,10 +1,7 @@
-// A tiny static server for app/ (Node 22, standard library only), so the
-// guide can be run locally without a build step: `node serve.ts` serves app/
-// on http://localhost:8080 (`--port <n>` for another port). It sends the MIME
-// types a browser needs, refuses any path outside app/, and otherwise does
-// nothing clever: this is a development convenience, not a web server for the
-// internet. Run it from the repo root; it serves only app/, so
-// http://localhost:8080 shows the guide itself.
+// A tiny static server for app/ (Node 22, standard library only), so the guide can be run locally without a
+// build step: `node serve.ts` serves app/ on http://localhost:8080 (`--port <n>` for another port). It sends the MIME
+// types a browser needs, refuses any path outside app/, and otherwise does nothing clever: this is a development
+// convenience, not a web server for the internet.
 import { createReadStream, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -16,7 +13,7 @@ const portIndex = args.indexOf('--port');
 const requested = portIndex === -1 ? 8080 : Number(args[portIndex + 1]);
 const port = Number.isInteger(requested) && requested > 0 && requested < 65536 ? requested : 8080;
 
-const MIME = {
+const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
@@ -32,21 +29,9 @@ const MIME = {
   '.webmanifest': 'application/manifest+json',
 };
 
-function mimeFor(file) {
-  return MIME[extname(file).toLowerCase()] ?? 'application/octet-stream';
-}
-
-function resolveInsideApp(pathname) {
-  // join + resolve collapses ".." segments; the prefix check below is what
-  // keeps a request inside app/ even when the path tries to climb out.
-  const file = resolve(join(root, normalize(pathname)));
-  if (file !== root && !file.startsWith(root + sep)) return null;
-  return file;
-}
-
 createServer((request, response) => {
   const url = new URL(request.url ?? '/', 'http://localhost');
-  let pathname;
+  let pathname: string;
   try {
     pathname = decodeURIComponent(url.pathname);
   } catch {
@@ -54,12 +39,12 @@ createServer((request, response) => {
     return;
   }
   if (pathname.endsWith('/')) pathname += 'index.html';
-  const file = resolveInsideApp(pathname);
-  if (file === null) {
+  const file = resolve(join(root, normalize(pathname)));
+  if (file !== root && !file.startsWith(root + sep)) {
     response.writeHead(403).end('forbidden');
     return;
   }
-  let size;
+  let size: number;
   try {
     const stats = statSync(file);
     if (!stats.isFile()) throw new Error('not a file');
@@ -69,7 +54,7 @@ createServer((request, response) => {
     return;
   }
   response.writeHead(200, {
-    'content-type': mimeFor(file),
+    'content-type': MIME[extname(file).toLowerCase()] ?? 'application/octet-stream',
     'content-length': size,
     'cache-control': 'no-store',
   });

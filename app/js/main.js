@@ -1,213 +1,148 @@
-// Leonida Ledger boot: loads the trophy list and the roadmap, wires the
-// toolbar, tabs and hash routing, and renders. The app fetches only its own
-// files (data/trophies.json, data/roadmap.json) and works with the network
-// off. Screenshot aids, documented in shots.json: ?demo=1 seeds 13 earned
-// trophies for the screenshots, ?spoiler=1 turns the spoiler setting on,
-// ?open=<id> opens a trophy's guide, ?view=roadmap|missables picks the
-// opening tab. Demo seeding is memory-only and only applies when the reader
-// has no saved progress, so a ?demo=1 link can never wipe a real checklist.
-import { loadProgress, saveProgress, exportProgress, parseImport, resetProgress } from './store.js';
-import { kindCounts, filterTrophies } from './filters.js';
-import { renderChecklist, nextUpTrophy, gradeProgress } from './checklist.js';
-import { renderDetail } from './detail.js';
-import { renderRoadmap } from './roadmap.js';
-import { renderMissables } from './missables.js';
+// main.js — boots Leonida Ledger and wires the toolbar to the views.
+//
+// Layout: a header with the progress summary, a toolbar (search, kind
+// filters, the spoiler switch, export/import), the checklist grid with a
+// detail pane beside it, and a roadmap page. State changes flow one way:
+// mutate the store, then repaint the parts that depend on it.
 
-const DEMO_EARNED = [
-  'just-like-paradise', 'paradise-lost', 'trust', 'baited-my-tackle',
-  'stick-fiddler', 'whip-it-good', 'you-wainker', 'master-of-none',
-  'the-goodtime-state', 'hot-together', 'gunslinger', 'treat-yo-self',
-  'on-the-spot',
-];
+import { loadData, summarise } from './data.js';
+import { KINDS, applyFilters } from './filters.js';
+import { renderChecklist, renderDetail, renderProgress, renderRoadmap } from './render.js';
+import { Store } from './store.js';
 
-const params = new URLSearchParams(location.search);
-const state = {
-  trophies: [],
-  roadmap: null,
-  earned: loadProgress(),
-  spoiler: params.get('spoiler') === '1',
-  kind: params.get('kind') ?? 'all',
-  grade: params.get('grade') ?? 'all',
-  earnedFilter: 'all',
+const ui = {
+  kind: 'all',
   query: '',
-  view: params.get('view') ?? 'checklist',
-  selectedId: params.get('open') ?? null,
+  view: 'checklist',
+  selectedId: null,
 };
 
-// Demo mode seeds the screenshot progress in memory only, and only when the
-// reader has nothing saved: a demo link must never overwrite real progress,
-// and the seeded set is never written back to localStorage. Verified
-// 2026-11-19 in a headless browser: with saved progress, ?demo=1 leaves the
-// stored checklist untouched, and with empty storage the 13 seeded trophies
-// are never written back.
-if (params.get('demo') === '1' && state.earned.size === 0) {
-  state.earned = new Set(DEMO_EARNED);
+function download(filename, text) {
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const $ = (id) => document.getElementById(id);
-const listEl = $('trophy-list');
-const statusEl = $('list-status');
-const emptyEl = $('empty-note');
-const detailEl = $('detail');
-const toolbarEl = $('toolbar');
+async function boot() {
+  const { trophyData, trophies, roadmap } = await loadData();
+  const store = new Store(window.location);
+  const summary = summarise(trophies);
+  const byName = new Map(trophies.map((t) => [t.name, t]));
+  const byId = new Map(trophies.map((t) => [t.id, t]));
 
-function renderAll() {
-  const filtered = filterTrophies(state.trophies, state);
-  renderChecklist(listEl, statusEl, emptyEl, filtered, state, toggleEarned, selectTrophy);
-  const selected = state.trophies.find((trophy) => trophy.id === state.selectedId) ?? null;
-  renderDetail(detailEl, selected, state, toggleEarned);
-  renderProgress();
-  renderTabs();
-}
+  const progressRoot = document.querySelector('#progress');
+  const grid = document.querySelector('#grid');
+  const detail = document.querySelector('#detail');
+  const roadmapRoot = document.querySelector('#roadmap');
+  const checklistView = document.querySelector('#checklist-view');
+  const roadmapView = document.querySelector('#roadmap-view');
+  const countNote = document.querySelector('#count-note');
+  const demoNote = document.querySelector('#demo-note');
 
-function renderProgress() {
-  const total = state.trophies.length;
-  const earned = state.earned.size;
-  $('earned-count').textContent = String(earned);
-  const bar = $('progress-bar');
-  bar.setAttribute('aria-valuenow', String(earned));
-  $('progress-fill').style.width = total ? `${Math.round((earned / total) * 100)}%` : '0%';
-  $('progress-grades').textContent = gradeProgress(state.trophies, state.earned).join(' · ');
-  const next = nextUpTrophy(state);
-  $('progress-next').innerHTML = next
-    ? `Next up: <strong>${next.name}</strong> — ${next.description}`
-    : 'All 55 earned. Leonida Legend.';
-}
+  document.querySelector('#list-makeup').textContent =
+    `${summary.total} trophies — ${summary.grades.platinum} platinum, ${summary.grades.gold} gold, ` +
+    `${summary.grades.silver} silver, ${summary.grades.bronze} bronze; ${summary.hidden} hidden, ${summary.missable} missable.`;
+  if (store.demo) demoNote.hidden = false;
 
-function renderTabs() {
-  for (const tab of document.querySelectorAll('.tab')) {
-    tab.classList.toggle('active', tab.dataset.view === state.view);
+  function repaint() {
+    renderProgress(progressRoot, trophies, store);
+    const shown = applyFilters(trophies, ui);
+    countNote.textContent = `Showing ${shown.length} of ${trophies.length}`;
+    renderChecklist(grid, shown, store, { onToggle, onOpen });
+    if (ui.selectedId != null && byId.has(ui.selectedId)) {
+      renderDetail(detail, byId.get(ui.selectedId), store, trophyData.sources, { onToggle });
+    }
+    renderRoadmap(roadmapRoot, roadmap, store, byName);
   }
-  $('view-checklist').hidden = state.view !== 'checklist';
-  $('view-roadmap').hidden = state.view !== 'roadmap';
-  $('view-missables').hidden = state.view !== 'missables';
-  toolbarEl.style.display = state.view === 'checklist' ? '' : 'none';
-}
 
-function toggleEarned(id, earned) {
-  if (earned) state.earned.add(id);
-  else state.earned.delete(id);
-  saveProgress(state.earned);
-  renderAll();
-}
-
-function selectTrophy(id) {
-  state.selectedId = id;
-  state.view = 'checklist';
-  renderAll();
-  if (location.hash !== `#/trophy/${id}`) history.replaceState(null, '', `#/trophy/${id}`);
-}
-
-function openTrophyFromElsewhere(id) {
-  selectTrophy(id);
-  document.getElementById('view-checklist').scrollIntoView();
-}
-
-function routeFromHash() {
-  const hash = location.hash;
-  if (!hash) {
-    // No hash on first load: keep the view from the ?view= parameter.
-    renderAll();
-    return;
+  function onToggle(trophy, on) {
+    store.setEarned(trophy.id, on);
+    repaint();
   }
-  if (hash === '#/roadmap') {
-    state.view = 'roadmap';
-  } else if (hash === '#/missables') {
-    state.view = 'missables';
-  } else if (hash.startsWith('#/trophy/')) {
-    const id = hash.slice('#/trophy/'.length);
-    if (state.trophies.some((trophy) => trophy.id === id)) state.selectedId = id;
-    state.view = 'checklist';
-  } else {
-    state.view = 'checklist';
-  }
-  renderAll();
-}
 
-function wireToolbar() {
-  const counts = kindCounts(state.trophies);
-  for (const el of document.querySelectorAll('[data-count]')) {
-    el.textContent = `(${counts[el.dataset.count] ?? 0})`;
+  function onOpen(trophy) {
+    ui.selectedId = trophy.id;
+    renderDetail(detail, trophy, store, trophyData.sources, { onToggle });
+    detail.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
-  const kindRadios = document.querySelectorAll('input[name="kind"]');
-  for (const radio of kindRadios) {
-    radio.checked = radio.value === state.kind;
-    radio.addEventListener('change', () => {
-      state.kind = radio.value;
-      renderAll();
+
+  // Toolbar: search.
+  const search = document.querySelector('#search');
+  search.addEventListener('input', () => {
+    ui.query = search.value;
+    repaint();
+  });
+
+  // Toolbar: kind filter chips.
+  const chips = document.querySelector('#kind-chips');
+  for (const kind of KINDS) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip' + (kind === ui.kind ? ' is-active' : '');
+    chip.dataset.kind = kind;
+    chip.textContent = kind === 'all' ? 'All' : kind[0].toUpperCase() + kind.slice(1);
+    chip.addEventListener('click', () => {
+      ui.kind = kind;
+      chips.querySelectorAll('.chip').forEach((c) => c.classList.toggle('is-active', c.dataset.kind === kind));
+      repaint();
     });
+    chips.append(chip);
   }
-  const gradeSelect = $('grade');
-  gradeSelect.value = state.grade;
-  gradeSelect.addEventListener('change', () => {
-    state.grade = gradeSelect.value;
-    renderAll();
+
+  // Toolbar: spoiler switch.
+  const spoilerToggle = document.querySelector('#spoiler-toggle');
+  spoilerToggle.checked = store.spoilers;
+  spoilerToggle.addEventListener('change', () => {
+    store.setSpoilers(spoilerToggle.checked);
+    repaint();
   });
-  $('earned-filter').addEventListener('change', (event) => {
-    state.earnedFilter = event.target.value;
-    renderAll();
+
+  // Toolbar: export and import.
+  document.querySelector('#export-button').addEventListener('click', () => {
+    download('leonida-ledger-progress.json', store.exportText());
   });
-  $('search').addEventListener('input', (event) => {
-    state.query = event.target.value;
-    renderAll();
-  });
-  const spoilerBox = $('spoiler');
-  spoilerBox.checked = state.spoiler;
-  spoilerBox.addEventListener('change', () => {
-    state.spoiler = spoilerBox.checked;
-    renderAll();
-  });
-  $('export').addEventListener('click', () => exportProgress(state.earned));
-  $('import').addEventListener('change', async (event) => {
-    const file = event.target.files[0];
+  const fileInput = document.querySelector('#import-file');
+  document.querySelector('#import-button').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
     if (!file) return;
     try {
-      const imported = parseImport(await file.text(), state.trophies.map((trophy) => trophy.id));
-      state.earned = imported;
-      saveProgress(state.earned);
-      renderAll();
-    } catch {
-      alert('That file is not a Leonida Ledger progress export.');
+      store.importText(await file.text());
+      repaint();
+    } catch (err) {
+      window.alert(err.message);
     }
-    event.target.value = '';
+    fileInput.value = '';
   });
-  $('reset').addEventListener('click', () => {
-    if (confirm('Clear all earned trophies? This cannot be undone — export your progress first if you want to keep it.')) {
-      state.earned = resetProgress();
-      renderAll();
-    }
-  });
-  for (const tab of document.querySelectorAll('.tab')) {
-    tab.addEventListener('click', () => {
-      location.hash = tab.dataset.view === 'checklist' ? '#/' : `#/${tab.dataset.view}`;
-    });
+
+  // View tabs: checklist and roadmap.
+  const tabButtons = document.querySelectorAll('[data-view]');
+  function setView(view) {
+    ui.view = view;
+    checklistView.hidden = view !== 'checklist';
+    roadmapView.hidden = view !== 'roadmap';
+    tabButtons.forEach((b) => b.classList.toggle('is-active', b.dataset.view === view));
   }
-  window.addEventListener('hashchange', routeFromHash);
+  tabButtons.forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+
+  // Open on a sensible default: a trophy whose guide shows straight away
+  // (not spoiler-masked), so the first paint already shows a guide and its
+  // sources beside the checklist. Opening the app never mutates the save.
+  const opener = trophies.find((t) => t.name === 'The Shootist') || trophies[0];
+  if (opener) ui.selectedId = opener.id;
+
+  repaint();
+  window.__ledger = { store, trophies, roadmap, repaint, setView, onOpen };
 }
 
-async function bootMain() {
-  let trophiesDoc;
-  let roadmapDoc;
-  try {
-    [trophiesDoc, roadmapDoc] = await Promise.all([
-      (await fetch('data/trophies.json')).json(),
-      (await fetch('data/roadmap.json')).json(),
-    ]);
-  } catch {
-    // The data files live beside this page: opening index.html straight from
-    // disk with no server can block fetch. Serve app/ (node serve.ts) and
-    // reload instead of showing a blank page.
-    statusEl.textContent = 'Could not load the trophy list. Serve app/ with a static server (node serve.ts) and reload.';
-    return;
-  }
-  state.trophies = trophiesDoc.trophies;
-  state.roadmap = roadmapDoc;
-  const byId = new Map(state.trophies.map((trophy) => [trophy.id, trophy]));
-  if (!state.selectedId && state.trophies.length) state.selectedId = state.trophies[0].id;
-  renderRoadmap($('roadmap'), state.roadmap, byId, openTrophyFromElsewhere);
-  renderMissables($('missables'), state.trophies, openTrophyFromElsewhere);
-  wireToolbar();
-  routeFromHash();
-}
-
-bootMain();
+boot().catch((err) => {
+  const main = document.querySelector('main');
+  const p = document.createElement('p');
+  p.className = 'empty-note';
+  p.textContent = `The guide could not load its data: ${err.message}`;
+  main.prepend(p);
+});

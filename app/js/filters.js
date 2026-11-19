@@ -1,54 +1,37 @@
-// Filtering and the spoiler rule. A trophy is spoiler-hidden when the spoiler
-// setting is on, the trophy is hidden on PlayStation, and it has not been
-// earned yet — its name, description and guide are then masked everywhere
-// until it is ticked off. The online filter always matches nothing: GTA VI
-// has no online trophies, and the empty state says so instead of pretending
-// otherwise. 28 of the 55 trophies are hidden on PlayStation, so with spoiler
-// mode on an un-earned list shows 28 masked cards minus any the reader has
-// already earned.
-import { KIND_LABELS } from './format.js';
+// filters.js — which trophies the checklist shows, and what a spoiler-masked
+// trophy looks like until it is earned or revealed.
+//
+// Spoiler rule: with spoilers on, a trophy that is hidden on PlayStation or
+// belongs to the story shows as "Hidden trophy" — name and description
+// masked — until the player earns it or taps to reveal it.
 
-export const KIND_KEYS = ['story', 'missable', 'collectibles', 'activities', 'online'];
+export const KINDS = ['all', 'story', 'missable', 'collectibles', 'activities', 'online'];
 
-export function kindCounts(trophies) {
-  const counts = { all: trophies.length, story: 0, missable: 0, collectibles: 0, activities: 0, online: 0 };
-  for (const trophy of trophies) {
-    if (trophy.kinds.includes('story')) counts.story += 1;
-    if (trophy.missable === 'yes') counts.missable += 1;
-    if (trophy.kinds.includes('collectibles')) counts.collectibles += 1;
-    if (trophy.kinds.includes('activities')) counts.activities += 1;
-  }
-  return counts;
+export function isMasked(trophy, store) {
+  if (!store.spoilers) return false;
+  if (store.isEarned(trophy.id) || store.isRevealed(trophy.id)) return false;
+  return trophy.hidden || trophy.kind === 'story';
 }
 
-export function isSpoilerHidden(trophy, spoilerOn, earned) {
-  return spoilerOn && trophy.hidden && !earned.has(trophy.id);
+export function displayName(trophy, store) {
+  return isMasked(trophy, store) ? 'Hidden trophy' : trophy.name;
 }
 
-function kindMatches(trophy, kind) {
-  switch (kind) {
-    case 'all': return true;
-    case 'online': return false;
-    case 'missable': return trophy.missable === 'yes';
-    default: return trophy.kinds.includes(kind);
-  }
+export function displayDescription(trophy, store) {
+  return isMasked(trophy, store)
+    ? 'Hidden until earned. Turn spoilers off, or reveal this trophy, to read it.'
+    : trophy.description;
 }
 
-export function filterTrophies(trophies, state) {
-  const query = state.query.trim().toLowerCase();
-  return trophies.filter((trophy) => {
-    if (!kindMatches(trophy, state.kind)) return false;
-    if (state.grade !== 'all' && trophy.grade !== state.grade) return false;
-    if (state.earnedFilter === 'earned' && !state.earned.has(trophy.id)) return false;
-    if (state.earnedFilter === 'remaining' && state.earned.has(trophy.id)) return false;
-    if (query) {
-      const haystack = `${trophy.name} ${trophy.description} ${trophy.guide} ${trophy.target ?? ''}`.toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
-    return true;
+export function applyFilters(trophies, { kind = 'all', query = '' } = {}) {
+  const q = query.trim().toLowerCase();
+  return trophies.filter((t) => {
+    if (kind !== 'all' && t.kind !== kind) return false;
+    if (!q) return true;
+    return (
+      t.name.toLowerCase().includes(q) ||
+      t.description.toLowerCase().includes(q) ||
+      t.guide.toLowerCase().includes(q)
+    );
   });
-}
-
-export function kindName(kind) {
-  return kind === 'all' ? 'All' : (KIND_LABELS[kind] ?? kind);
 }
