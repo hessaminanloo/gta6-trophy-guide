@@ -1,8 +1,10 @@
-// The detail pane: the selected trophy's official name, description and grade,
-// its guide in our own words, and the sources that guide cites, each as a link
-// the reader can follow. Spoiler-masked trophies show a notice instead of the
-// guide, and trophies with no published method say so plainly.
-import { escapeHtml, gradeLabel, kindLabel } from './format.js';
+// The detail pane: the selected trophy's official name, description and
+// grade, its chapter when it has one, its guide in our own words, and the
+// sources that guide cites, each as a link the reader can follow.
+// Spoiler-masked trophies show a notice instead of the guide, and trophies
+// with no published method say so plainly. The guide's sources are links, not
+// pasted text: the reader can follow each one to the original guide.
+import { escapeHtml, gradeLabel, kindLabel, chapterLabel } from './format.js';
 import { isSpoilerHidden } from './filters.js';
 
 export function renderDetail(detailEl, trophy, state, onToggle) {
@@ -44,9 +46,19 @@ export function renderDetail(detailEl, trophy, state, onToggle) {
   }
   card.append(meta);
 
+  const chapter = chapterLabel(trophy.chapter);
+  if (chapter && !masked) {
+    const chapterLine = document.createElement('p');
+    chapterLine.className = 'detail-chapter';
+    chapterLine.textContent = `Story · ${chapter}`;
+    card.append(chapterLine);
+  }
+
   const desc = document.createElement('p');
   desc.className = 'detail-desc';
-  desc.textContent = masked ? 'Hidden on PlayStation until earned. Turn the spoiler setting off, or earn it, to read the name, description and guide.' : trophy.description;
+  desc.textContent = masked
+    ? 'Hidden on PlayStation until earned. Turn the spoiler setting off, or earn it, to read the name, description and guide.'
+    : trophy.description;
   card.append(desc);
 
   if (trophy.target && !masked) {

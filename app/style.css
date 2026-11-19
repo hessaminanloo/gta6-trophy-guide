@@ -1,13 +1,13 @@
-/* Leonida Ledger — a warm paper look with a Vice City sunset accent. One theme,
-   system fonts only, so the guide renders identically offline. */
+/* Leonida Ledger — warm paper, one Vice City sunset accent, system fonts only,
+   so the guide renders identically offline. */
 :root {
-  --paper: #f6f1e7;
+  --paper: #f7f2e8;
   --card: #fffdf8;
-  --ink: #211d19;
-  --muted: #6b6259;
-  --line: #e3dac8;
-  --accent: #c8502e;
-  --accent-soft: #fbe9df;
+  --ink: #221e1a;
+  --muted: #6d6358;
+  --line: #e4dbc9;
+  --accent: #c14f2c;
+  --accent-soft: #fceadf;
   --gold: #a97c1f;
   --silver: #5f6b76;
   --bronze: #8a5a2e;
@@ -15,7 +15,7 @@
   --good: #2e7d4f;
   --warn: #a33d1e;
   --radius: 10px;
-  --shadow: 0 1px 3px rgb(33 29 25 / .12);
+  --shadow: 0 1px 3px rgb(34 30 26 / .12);
 }
 * { box-sizing: border-box; }
 body {
@@ -37,7 +37,7 @@ h1, h2, h3, .serif { font-family: "Iowan Old Style", Palatino, Georgia, serif; }
   justify-content: space-between;
   align-items: flex-start;
   padding: 28px 28px 18px;
-  background: linear-gradient(135deg, #2b1a2e 0%, #7a2d1e 55%, #c8502e 100%);
+  background: linear-gradient(135deg, #2b1a2e 0%, #7a2d1e 55%, #c14f2c 100%);
   color: #fff7ef;
 }
 .masthead a { color: #ffd9a8; }
@@ -70,6 +70,8 @@ h1, h2, h3, .serif { font-family: "Iowan Old Style", Palatino, Georgia, serif; }
 }
 .progress-bar span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #e07a3f, var(--accent)); transition: width .3s ease; }
 .progress-detail { margin: 0; font-size: 13px; color: var(--muted); }
+.progress-grades { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.progress-grades strong { color: var(--ink); }
 .progress-next { margin: 8px 0 0; font-size: 13px; }
 .progress-next strong { color: var(--accent); }
 
@@ -216,6 +218,7 @@ main { padding: 20px 28px 28px; }
 }
 .detail-card h2 { margin: 0 0 4px; font-size: 24px; line-height: 1.2; }
 .detail-desc { margin: 0 0 10px; color: var(--muted); }
+.detail-chapter { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
 .detail-guide { margin: 12px 0; white-space: pre-line; }
 .detail-guide p { margin: 0 0 10px; }
 .detail-unknown {
@@ -285,3 +288,5 @@ footer p { margin: 0 0 10px; }
   main, .tabs, .toolbar { padding-left: 16px; padding-right: 16px; }
   .toolbar input[type="search"] { width: 100%; }
 }
+
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }

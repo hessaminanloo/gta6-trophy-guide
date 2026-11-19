@@ -1,7 +1,25 @@
 // The roadmap view: the three steps to the platinum, the chapter order, and
 // the collectible counts, all built from the official descriptions and the
 // cited guide. Step trophies are clickable and open the trophy in the list.
+// Counts come from roadmap.json, which the guide's own counts table renders —
+// the step text and the table agree (15 target decks in both).
 import { escapeHtml } from './format.js';
+
+function trophyLinks(container, ids, trophiesById, onOpenTrophy) {
+  ids.forEach((id, index) => {
+    const trophy = trophiesById.get(id);
+    if (!trophy) return;
+    if (index > 0) container.append(document.createTextNode(' · '));
+    const link = document.createElement('a');
+    link.href = `#/trophy/${trophy.id}`;
+    link.textContent = trophy.name;
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      onOpenTrophy(trophy.id);
+    });
+    container.append(link);
+  });
+}
 
 export function renderRoadmap(roadmapEl, roadmap, trophiesById, onOpenTrophy) {
   roadmapEl.replaceChildren();
@@ -37,19 +55,7 @@ export function renderRoadmap(roadmapEl, roadmap, trophiesById, onOpenTrophy) {
     const names = document.createElement('p');
     names.className = 'step-trophies';
     names.textContent = 'Trophies in this step: ';
-    step.trophies.forEach((id, index) => {
-      const trophy = trophiesById.get(id);
-      if (!trophy) return;
-      if (index > 0) names.append(document.createTextNode(' · '));
-      const link = document.createElement('a');
-      link.href = `#/trophy/${trophy.id}`;
-      link.textContent = trophy.name;
-      link.addEventListener('click', (event) => {
-        event.preventDefault();
-        onOpenTrophy(trophy.id);
-      });
-      names.append(link);
-    });
+    trophyLinks(names, step.trophies, trophiesById, onOpenTrophy);
     card.append(names);
     roadmapEl.append(card);
   }
@@ -60,19 +66,7 @@ export function renderRoadmap(roadmapEl, roadmap, trophiesById, onOpenTrophy) {
   for (const chapter of roadmap.chapters) {
     const line = document.createElement('p');
     line.innerHTML = `<strong>Chapter ${chapter.chapter}:</strong> ${escapeHtml(chapter.note)} `;
-    chapter.trophies.forEach((id, index) => {
-      const trophy = trophiesById.get(id);
-      if (!trophy) return;
-      if (index > 0) line.append(document.createTextNode(' · '));
-      const link = document.createElement('a');
-      link.href = `#/trophy/${trophy.id}`;
-      link.textContent = trophy.name;
-      link.addEventListener('click', (event) => {
-        event.preventDefault();
-        onOpenTrophy(trophy.id);
-      });
-      line.append(link);
-    });
+    trophyLinks(line, chapter.trophies, trophiesById, onOpenTrophy);
     roadmapEl.append(line);
   }
 

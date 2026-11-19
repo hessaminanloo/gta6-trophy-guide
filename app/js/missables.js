@@ -1,7 +1,7 @@
 // The missables view: the one trophy that can actually be missed, in full,
 // and the reasons the rest cannot be — each built from the official
 // descriptions and the cited guide, so a reader can see the reasoning.
-import { escapeHtml } from './format.js';
+import { chapterLabel, escapeHtml } from './format.js';
 
 const SAFE_REASONS = [
   { title: 'Story trophies cannot be missed', text: 'The 12 story trophies (chapters and main missions) unlock by finishing the story, which is linear. There is no mission replay, but you never need one: completing the story is the requirement.' },
@@ -33,6 +33,12 @@ export function renderMissables(missablesEl, trophies, onOpenTrophy) {
     const desc = document.createElement('p');
     desc.textContent = trophy.description;
     hero.append(desc);
+    const chapterText = chapterLabel(trophy.chapter);
+    if (chapterText) {
+      const chapter = document.createElement('p');
+      chapter.textContent = chapterText;
+      hero.append(chapter);
+    }
     const guide = document.createElement('p');
     guide.textContent = trophy.guide;
     hero.append(guide);

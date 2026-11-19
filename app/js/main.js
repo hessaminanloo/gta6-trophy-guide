@@ -1,12 +1,14 @@
 // Leonida Ledger boot: loads the trophy list and the roadmap, wires the
 // toolbar, tabs and hash routing, and renders. The app fetches only its own
-// files (data/trophies.json, data/roadmap.json) and works with the network off.
-// Screenshot aids, documented in shots.json: ?demo=1 seeds 13 earned trophies,
-// ?spoiler=1 turns the spoiler setting on, ?open=<id> opens a trophy's guide,
-// ?view=roadmap|missables picks the opening tab.
+// files (data/trophies.json, data/roadmap.json) and works with the network
+// off. Screenshot aids, documented in shots.json: ?demo=1 seeds 13 earned
+// trophies for the screenshots, ?spoiler=1 turns the spoiler setting on,
+// ?open=<id> opens a trophy's guide, ?view=roadmap|missables picks the
+// opening tab. Demo seeding is memory-only and only applies when the reader
+// has no saved progress, so a ?demo=1 link can never wipe a real checklist.
 import { loadProgress, saveProgress, exportProgress, parseImport, resetProgress } from './store.js';
 import { kindCounts, filterTrophies } from './filters.js';
-import { renderChecklist, nextUpTrophy } from './checklist.js';
+import { renderChecklist, nextUpTrophy, gradeProgress } from './checklist.js';
 import { renderDetail } from './detail.js';
 import { renderRoadmap } from './roadmap.js';
 import { renderMissables } from './missables.js';
@@ -32,9 +34,14 @@ const state = {
   selectedId: params.get('open') ?? null,
 };
 
-if (params.get('demo') === '1') {
+// Demo mode seeds the screenshot progress in memory only, and only when the
+// reader has nothing saved: a demo link must never overwrite real progress,
+// and the seeded set is never written back to localStorage. Verified
+// 2026-11-19 in a headless browser: with saved progress, ?demo=1 leaves the
+// stored checklist untouched, and with empty storage the 13 seeded trophies
+// are never written back.
+if (params.get('demo') === '1' && state.earned.size === 0) {
   state.earned = new Set(DEMO_EARNED);
-  saveProgress(state.earned);
 }
 
 const $ = (id) => document.getElementById(id);
@@ -60,6 +67,7 @@ function renderProgress() {
   const bar = $('progress-bar');
   bar.setAttribute('aria-valuenow', String(earned));
   $('progress-fill').style.width = total ? `${Math.round((earned / total) * 100)}%` : '0%';
+  $('progress-grades').textContent = gradeProgress(state.trophies, state.earned).join(' · ');
   const next = nextUpTrophy(state);
   $('progress-next').innerHTML = next
     ? `Next up: <strong>${next.name}</strong> — ${next.description}`

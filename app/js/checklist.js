@@ -1,8 +1,24 @@
 // The checklist: one card per trophy, with its checkbox, official name and
-// description, grade badge, kind chips, target counter and missable flag. A card
-// click (anywhere but the checkbox) opens the trophy in the detail pane.
+// description, grade badge, kind chips, target counter and missable flag. A
+// card click (anywhere but the checkbox) opens the trophy in the detail pane.
+// gradeProgress feeds the masthead's per-grade breakdown. Spoiler-masked cards
+// show 'Hidden trophy — earn it to reveal' in place of the name and
+// description; the checkbox still works, so a reader who earns one can tick it
+// off without seeing the spoiler first.
 import { escapeHtml, gradeLabel, kindLabel } from './format.js';
 import { isSpoilerHidden } from './filters.js';
+
+export function gradeProgress(trophies, earned) {
+  const totals = {};
+  const done = {};
+  for (const t of trophies) {
+    totals[t.grade] = (totals[t.grade] ?? 0) + 1;
+    if (earned.has(t.id)) done[t.grade] = (done[t.grade] ?? 0) + 1;
+  }
+  return ['platinum', 'gold', 'silver', 'bronze'].map(
+    (grade) => `${gradeLabel(grade)} ${done[grade] ?? 0}/${totals[grade] ?? 0}`,
+  );
+}
 
 export function trophyCard(trophy, state, onToggle, onSelect) {
   const li = document.createElement('li');
@@ -101,9 +117,13 @@ export function progressText(state) {
   return { total, earned, byGrade };
 }
 
+const NEXT_UP_ORDER = [
+  'positive-mental-attitude', 'just-like-paradise', 'paradise-lost', 't-ass-drug-money',
+  'vice-city-baby', 'top-of-the-world-ma', 'you-gotta-know-when-to-get-off',
+];
+
 export function nextUpTrophy(state) {
-  const order = ['positive-mental-attitude', 'just-like-paradise', 'paradise-lost', 't-ass-drug-money', 'vice-city-baby', 'top-of-the-world-ma', 'you-gotta-know-when-to-get-off'];
-  for (const id of order) {
+  for (const id of NEXT_UP_ORDER) {
     if (!state.earned.has(id)) return state.trophies.find((t) => t.id === id);
   }
   return state.trophies.find((t) => !state.earned.has(t.id)) ?? null;
