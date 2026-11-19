@@ -8,22 +8,33 @@ export const STORAGE_KEY = 'leonida-ledger-v1';
 export const EXPORT_FILENAME = 'leonida-ledger-progress.json';
 
 function readStoredIds() {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  let raw = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return [];
+  }
   if (!raw) return [];
-  const parsed = JSON.parse(raw);
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
   return Array.isArray(parsed) ? parsed : [];
 }
 
 export function loadProgress() {
-  try {
-    return new Set(readStoredIds().filter((id) => typeof id === 'string'));
-  } catch {
-    return new Set();
-  }
+  return new Set(readStoredIds().filter((id) => typeof id === 'string'));
 }
 
 export function saveProgress(earned) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...earned].sort()));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...earned].sort()));
+  } catch {
+    // Storage full or unavailable (private mode): the in-memory checklist
+    // still works for this visit; the next load starts empty.
+  }
 }
 
 export function exportProgress(earned) {
@@ -32,10 +43,10 @@ export function exportProgress(earned) {
     { type: 'application/json' },
   );
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = EXPORT_FILENAME;
-  a.click();
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = EXPORT_FILENAME;
+  anchor.click();
   URL.revokeObjectURL(url);
 }
 

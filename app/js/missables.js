@@ -11,6 +11,37 @@ const SAFE_REASONS = [
   { title: 'Cheats are the real lockout', text: 'Cheats disable trophies and saving. They only unlock after the story, so keep them off for the whole run — a cheated save cannot earn trophies.' },
 ];
 
+function missableHero(trophy, onOpenTrophy) {
+  const hero = document.createElement('article');
+  hero.className = 'missable-hero';
+  const heading = document.createElement('h3');
+  heading.textContent = `⚠ ${trophy.name} — the only potentially missable trophy`;
+  hero.append(heading);
+  const desc = document.createElement('p');
+  desc.textContent = trophy.description;
+  hero.append(desc);
+  const chapterText = chapterLabel(trophy.chapter);
+  if (chapterText) {
+    const chapter = document.createElement('p');
+    chapter.textContent = chapterText;
+    hero.append(chapter);
+  }
+  const guide = document.createElement('p');
+  guide.textContent = trophy.guide;
+  hero.append(guide);
+  const open = document.createElement('p');
+  const link = document.createElement('a');
+  link.href = `#/trophy/${trophy.id}`;
+  link.textContent = 'Open its full guide in the checklist';
+  link.addEventListener('click', (event) => {
+    event.preventDefault();
+    onOpenTrophy(trophy.id);
+  });
+  open.append(link);
+  hero.append(open);
+  return hero;
+}
+
 export function renderMissables(missablesEl, trophies, onOpenTrophy) {
   missablesEl.replaceChildren();
 
@@ -23,36 +54,8 @@ export function renderMissables(missablesEl, trophies, onOpenTrophy) {
   lede.textContent = 'Only one trophy in GTA VI is reported as potentially missable. Everything else can be finished in free-roam after the story.';
   missablesEl.append(lede);
 
-  const missable = trophies.filter((t) => t.missable === 'yes');
-  for (const trophy of missable) {
-    const hero = document.createElement('article');
-    hero.className = 'missable-hero';
-    const heading = document.createElement('h3');
-    heading.textContent = `⚠ ${trophy.name} — the only potentially missable trophy`;
-    hero.append(heading);
-    const desc = document.createElement('p');
-    desc.textContent = trophy.description;
-    hero.append(desc);
-    const chapterText = chapterLabel(trophy.chapter);
-    if (chapterText) {
-      const chapter = document.createElement('p');
-      chapter.textContent = chapterText;
-      hero.append(chapter);
-    }
-    const guide = document.createElement('p');
-    guide.textContent = trophy.guide;
-    hero.append(guide);
-    const open = document.createElement('p');
-    const link = document.createElement('a');
-    link.href = `#/trophy/${trophy.id}`;
-    link.textContent = 'Open its full guide in the checklist';
-    link.addEventListener('click', (event) => {
-      event.preventDefault();
-      onOpenTrophy(trophy.id);
-    });
-    open.append(link);
-    hero.append(open);
-    missablesEl.append(hero);
+  for (const trophy of trophies.filter((t) => t.missable === 'yes')) {
+    missablesEl.append(missableHero(trophy, onOpenTrophy));
   }
 
   const safe = document.createElement('section');
@@ -67,6 +70,9 @@ export function renderMissables(missablesEl, trophies, onOpenTrophy) {
     list.append(item);
   }
   safe.append(list);
+  // A reminder that sits with the reasoning, not buried in the footer: the
+  // save-slot counts come from PowerPyx's guide, and there is no mission
+  // replay, so manual saves are the only safety net.
   const sources = document.createElement('p');
   sources.innerHTML = 'Sources: PowerPyx’s <a href="https://www.powerpyx.com/gta-6-grand-theft-auto-vi-trophy-guide-roadmap/">GTA 6 Trophy Guide &amp; Roadmap</a> (“Number of missable trophies: Potentially 1”) and the official trophy list on <a href="https://www.exophase.com/game/grand-theft-auto-vi-psn/trophies/">Exophase</a>. Keep a manual save at the start and end of each chapter anyway — the game has 15 manual save slots and 1 autosave slot, and there is no mission replay.';
   safe.append(sources);

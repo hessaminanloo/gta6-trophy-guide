@@ -21,6 +21,58 @@ function trophyLinks(container, ids, trophiesById, onOpenTrophy) {
   });
 }
 
+function stepCard(step, trophiesById, onOpenTrophy) {
+  const card = document.createElement('article');
+  card.className = 'step';
+  const hours = document.createElement('p');
+  hours.className = 'step-hours';
+  hours.textContent = `Step ${step.step} · ${step.hours}`;
+  card.append(hours);
+  const heading = document.createElement('h3');
+  heading.textContent = step.name;
+  card.append(heading);
+  const text = document.createElement('p');
+  text.textContent = step.text;
+  card.append(text);
+  if (step.watch) {
+    const watch = document.createElement('p');
+    watch.className = 'watch';
+    watch.innerHTML = `<strong>Watch out:</strong> ${escapeHtml(step.watch)}`;
+    card.append(watch);
+  }
+  const names = document.createElement('p');
+  names.className = 'step-trophies';
+  names.textContent = 'Trophies in this step: ';
+  trophyLinks(names, step.trophies, trophiesById, onOpenTrophy);
+  card.append(names);
+  return card;
+}
+
+function countsTable(counts) {
+  // One row per count: what it is, how many the trophy needs, how many exist,
+  // and the note that explains the gap between the two.
+  const table = document.createElement('table');
+  table.className = 'counts-table';
+  table.innerHTML = '<thead><tr><th>What</th><th>Need</th><th>Of</th><th>Notes</th></tr></thead>';
+  const body = document.createElement('tbody');
+  for (const count of counts) {
+    const row = document.createElement('tr');
+    const label = document.createElement('td');
+    label.textContent = count.label;
+    const need = document.createElement('td');
+    need.className = 'need';
+    need.textContent = count.need;
+    const of = document.createElement('td');
+    of.textContent = count.of;
+    const note = document.createElement('td');
+    note.textContent = count.note;
+    row.append(label, need, of, note);
+    body.append(row);
+  }
+  table.append(body);
+  return table;
+}
+
 export function renderRoadmap(roadmapEl, roadmap, trophiesById, onOpenTrophy) {
   roadmapEl.replaceChildren();
 
@@ -34,30 +86,7 @@ export function renderRoadmap(roadmapEl, roadmap, trophiesById, onOpenTrophy) {
   roadmapEl.append(lede);
 
   for (const step of roadmap.steps) {
-    const card = document.createElement('article');
-    card.className = 'step';
-    const hours = document.createElement('p');
-    hours.className = 'step-hours';
-    hours.textContent = `Step ${step.step} · ${step.hours}`;
-    card.append(hours);
-    const heading = document.createElement('h3');
-    heading.textContent = step.name;
-    card.append(heading);
-    const text = document.createElement('p');
-    text.textContent = step.text;
-    card.append(text);
-    if (step.watch) {
-      const watch = document.createElement('p');
-      watch.className = 'watch';
-      watch.innerHTML = `<strong>Watch out:</strong> ${escapeHtml(step.watch)}`;
-      card.append(watch);
-    }
-    const names = document.createElement('p');
-    names.className = 'step-trophies';
-    names.textContent = 'Trophies in this step: ';
-    trophyLinks(names, step.trophies, trophiesById, onOpenTrophy);
-    card.append(names);
-    roadmapEl.append(card);
+    roadmapEl.append(stepCard(step, trophiesById, onOpenTrophy));
   }
 
   const chaptersTitle = document.createElement('h3');
@@ -73,26 +102,7 @@ export function renderRoadmap(roadmapEl, roadmap, trophiesById, onOpenTrophy) {
   const countsTitle = document.createElement('h3');
   countsTitle.textContent = 'The counts that matter';
   roadmapEl.append(countsTitle);
-  const table = document.createElement('table');
-  table.className = 'counts-table';
-  table.innerHTML = '<thead><tr><th>What</th><th>Need</th><th>Of</th><th>Notes</th></tr></thead>';
-  const body = document.createElement('tbody');
-  for (const count of roadmap.counts) {
-    const row = document.createElement('tr');
-    const label = document.createElement('td');
-    label.textContent = count.label;
-    const need = document.createElement('td');
-    need.className = 'need';
-    need.textContent = count.need;
-    const of = document.createElement('td');
-    of.textContent = count.of;
-    const note = document.createElement('td');
-    note.textContent = count.note;
-    row.append(label, need, of, note);
-    body.append(row);
-  }
-  table.append(body);
-  roadmapEl.append(table);
+  roadmapEl.append(countsTable(roadmap.counts));
 
   const sources = document.createElement('p');
   sources.className = 'lede';

@@ -36,6 +36,14 @@ function mimeFor(file) {
   return MIME[extname(file).toLowerCase()] ?? 'application/octet-stream';
 }
 
+function resolveInsideApp(pathname) {
+  // join + resolve collapses ".." segments; the prefix check below is what
+  // keeps a request inside app/ even when the path tries to climb out.
+  const file = resolve(join(root, normalize(pathname)));
+  if (file !== root && !file.startsWith(root + sep)) return null;
+  return file;
+}
+
 createServer((request, response) => {
   const url = new URL(request.url ?? '/', 'http://localhost');
   let pathname;
@@ -46,8 +54,8 @@ createServer((request, response) => {
     return;
   }
   if (pathname.endsWith('/')) pathname += 'index.html';
-  const file = resolve(join(root, normalize(pathname)));
-  if (file !== root && !file.startsWith(root + sep)) {
+  const file = resolveInsideApp(pathname);
+  if (file === null) {
     response.writeHead(403).end('forbidden');
     return;
   }

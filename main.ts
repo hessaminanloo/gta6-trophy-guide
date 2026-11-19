@@ -25,6 +25,10 @@ const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 const appDir = join(here, 'app');
 const shotsDir = join(here, 'screenshots');
 
+if (!existsSync(appDir)) {
+  throw new Error(`app/ not found beside main.ts (${appDir}); run from the repository root.`);
+}
+
 mkdirSync(out, { recursive: true });
 cpSync(appDir, join(out, 'app'), { recursive: true });
 mkdirSync(join(out, 'screenshots'), { recursive: true });

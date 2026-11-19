@@ -7,6 +7,27 @@
 import { escapeHtml, gradeLabel, kindLabel, chapterLabel } from './format.js';
 import { isSpoilerHidden } from './filters.js';
 
+function sourceList(sources) {
+  const block = document.createElement('div');
+  block.className = 'sources';
+  const heading = document.createElement('h3');
+  heading.textContent = 'Sources for this guide';
+  block.append(heading);
+  const list = document.createElement('ul');
+  for (const source of sources ?? []) {
+    const item = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = source.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = source.name;
+    item.append(link);
+    list.append(item);
+  }
+  block.append(list);
+  return block;
+}
+
 export function renderDetail(detailEl, trophy, state, onToggle) {
   detailEl.replaceChildren();
   if (!trophy) {
@@ -72,9 +93,10 @@ export function renderDetail(detailEl, trophy, state, onToggle) {
     const guide = document.createElement('div');
     guide.className = 'detail-guide';
     for (const paragraph of trophy.guide.split('\n')) {
-      const p = document.createElement('p');
-      p.textContent = paragraph;
-      guide.append(p);
+      if (!paragraph.trim()) continue;
+      const paragraphEl = document.createElement('p');
+      paragraphEl.textContent = paragraph;
+      guide.append(paragraphEl);
     }
     card.append(guide);
 
@@ -85,24 +107,7 @@ export function renderDetail(detailEl, trophy, state, onToggle) {
       card.append(note);
     }
 
-    const sources = document.createElement('div');
-    sources.className = 'sources';
-    const heading = document.createElement('h3');
-    heading.textContent = 'Sources for this guide';
-    sources.append(heading);
-    const list = document.createElement('ul');
-    for (const source of trophy.sources ?? []) {
-      const item = document.createElement('li');
-      const link = document.createElement('a');
-      link.href = source.url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.textContent = source.name;
-      item.append(link);
-      list.append(item);
-    }
-    sources.append(list);
-    card.append(sources);
+    card.append(sourceList(trophy.sources));
   }
 
   const actions = document.createElement('div');

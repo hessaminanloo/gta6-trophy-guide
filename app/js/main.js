@@ -54,7 +54,7 @@ const toolbarEl = $('toolbar');
 function renderAll() {
   const filtered = filterTrophies(state.trophies, state);
   renderChecklist(listEl, statusEl, emptyEl, filtered, state, toggleEarned, selectTrophy);
-  const selected = state.trophies.find((t) => t.id === state.selectedId) ?? null;
+  const selected = state.trophies.find((trophy) => trophy.id === state.selectedId) ?? null;
   renderDetail(detailEl, selected, state, toggleEarned);
   renderProgress();
   renderTabs();
@@ -116,7 +116,7 @@ function routeFromHash() {
     state.view = 'missables';
   } else if (hash.startsWith('#/trophy/')) {
     const id = hash.slice('#/trophy/'.length);
-    if (state.trophies.some((t) => t.id === id)) state.selectedId = id;
+    if (state.trophies.some((trophy) => trophy.id === id)) state.selectedId = id;
     state.view = 'checklist';
   } else {
     state.view = 'checklist';
@@ -162,7 +162,7 @@ function wireToolbar() {
     const file = event.target.files[0];
     if (!file) return;
     try {
-      const imported = parseImport(await file.text(), state.trophies.map((t) => t.id));
+      const imported = parseImport(await file.text(), state.trophies.map((trophy) => trophy.id));
       state.earned = imported;
       saveProgress(state.earned);
       renderAll();
@@ -186,13 +186,23 @@ function wireToolbar() {
 }
 
 async function bootMain() {
-  const [trophiesDoc, roadmapDoc] = await Promise.all([
-    (await fetch('data/trophies.json')).json(),
-    (await fetch('data/roadmap.json')).json(),
-  ]);
+  let trophiesDoc;
+  let roadmapDoc;
+  try {
+    [trophiesDoc, roadmapDoc] = await Promise.all([
+      (await fetch('data/trophies.json')).json(),
+      (await fetch('data/roadmap.json')).json(),
+    ]);
+  } catch {
+    // The data files live beside this page: opening index.html straight from
+    // disk with no server can block fetch. Serve app/ (node serve.ts) and
+    // reload instead of showing a blank page.
+    statusEl.textContent = 'Could not load the trophy list. Serve app/ with a static server (node serve.ts) and reload.';
+    return;
+  }
   state.trophies = trophiesDoc.trophies;
   state.roadmap = roadmapDoc;
-  const byId = new Map(state.trophies.map((t) => [t.id, t]));
+  const byId = new Map(state.trophies.map((trophy) => [trophy.id, trophy]));
   if (!state.selectedId && state.trophies.length) state.selectedId = state.trophies[0].id;
   renderRoadmap($('roadmap'), state.roadmap, byId, openTrophyFromElsewhere);
   renderMissables($('missables'), state.trophies, openTrophyFromElsewhere);
